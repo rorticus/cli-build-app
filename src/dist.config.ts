@@ -11,6 +11,11 @@ const BundleAnalyzerPlugin = require('webpack-bundle-analyzer-sunburst').BundleA
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 function webpackConfig(args: any): webpack.Configuration {
+	args.features = {
+		diagnostics: false,
+		...(args.features || {})
+	};
+
 	const config = baseConfigFactory(args);
 	const { plugins, output } = config;
 
