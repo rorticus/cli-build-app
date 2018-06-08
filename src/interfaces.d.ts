@@ -4,10 +4,6 @@ export interface Output extends webpack.Output {
 	path: string;
 }
 
-export interface Module extends webpack.NewModule {
-	rules: webpack.NewUseRule[];
-}
-
 export interface ServiceWorkerOptions {
 	importScripts?: string[];
 	routes?: ServiceWorkerRoute[];
@@ -54,7 +50,7 @@ export type ServiceWorkerStrategy =
 export interface WebpackConfiguration extends webpack.Configuration {
 	plugins: webpack.Plugin[];
 	output: Output;
-	module: Module;
+	module: webpack.Module;
 }
 
 export interface WebAppIcons {

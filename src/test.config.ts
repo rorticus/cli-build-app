@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as webpack from 'webpack';
 import * as globby from 'globby';
 import * as CleanWebpackPlugin from 'clean-webpack-plugin';
-import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
+
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const basePath = process.cwd();
 
@@ -35,7 +36,7 @@ function webpackConfig(args: any): webpack.Configuration {
 
 	config.plugins = [
 		...plugins.map(plugin => {
-			if (plugin instanceof ExtractTextPlugin && (plugin as any).filename === 'main.css') {
+			if (plugin instanceof MiniCssExtractPlugin && (plugin as any).filename === 'main.css') {
 				(plugin as any).options = { ...(plugin as any).options, disable: true };
 			}
 			return plugin;
@@ -45,7 +46,7 @@ function webpackConfig(args: any): webpack.Configuration {
 
 	module.rules = module.rules.map(rule => {
 		if (Array.isArray(rule.use)) {
-			rule.use = rule.use.map(loader => {
+			rule.use = rule.use.map((loader: any) => {
 				if (typeof loader === 'string') {
 					return loader;
 				}

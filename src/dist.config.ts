@@ -8,11 +8,11 @@ import ServiceWorkerPlugin, {
 	ServiceWorkerOptions
 } from '@dojo/webpack-contrib/service-worker-plugin/ServiceWorkerPlugin';
 import * as HtmlWebpackPlugin from 'html-webpack-plugin';
-import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
 import * as CleanWebpackPlugin from 'clean-webpack-plugin';
 import * as ManifestPlugin from 'webpack-manifest-plugin';
 import * as WebpackChunkHash from 'webpack-chunk-hash';
 
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer-sunburst').BundleAnalyzerPlugin;
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
@@ -21,6 +21,8 @@ function webpackConfig(args: any): webpack.Configuration {
 	const manifest: WebAppManifest = args.pwa && args.pwa.manifest;
 	const serviceWorker: ServiceWorkerOptions = args.pwa && args.pwa.serviceWorker;
 	const { plugins, output } = config;
+
+	config.mode = 'production';
 
 	config.plugins = [
 		...plugins,
@@ -46,10 +48,7 @@ function webpackConfig(args: any): webpack.Configuration {
 		}),
 		new UglifyJsPlugin({ sourceMap: true, cache: true }),
 		new WebpackChunkHash(),
-		new CleanWebpackPlugin(['dist'], { root: output.path, verbose: false }),
-		new webpack.optimize.CommonsChunkPlugin({
-			name: 'runtime'
-		})
+		new CleanWebpackPlugin(['dist'], { root: output.path, verbose: false })
 	];
 
 	if (serviceWorker) {
@@ -74,8 +73,8 @@ function webpackConfig(args: any): webpack.Configuration {
 	}
 
 	config.plugins = config.plugins.map(plugin => {
-		if (plugin instanceof ExtractTextPlugin) {
-			return new ExtractTextPlugin({
+		if (plugin instanceof MiniCssExtractPlugin) {
+			return new MiniCssExtractPlugin({
 				filename: '[name].[contenthash].bundle.css',
 				allChunks: true
 			});

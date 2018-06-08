@@ -197,7 +197,7 @@ const command: Command = {
 		});
 	},
 	run(helper: Helper, args: any) {
-		console.log = () => {};
+		// console.log = () => {};
 		const rc = helper.configuration.get() || {};
 		let config: webpack.Configuration;
 		if (args.mode === 'dev') {

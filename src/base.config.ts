@@ -1,15 +1,15 @@
-import * as webpack from 'webpack';
-import * as path from 'path';
-import { existsSync } from 'fs';
 import CssModulePlugin from '@dojo/webpack-contrib/css-module-plugin/CssModulePlugin';
-import registryTransformer from '@dojo/webpack-contrib/registry-transformer';
 import I18nPlugin from '@dojo/webpack-contrib/i18n-plugin/I18nPlugin';
-import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
-import { WebAppManifest, WebpackConfiguration } from './interfaces';
-import * as loaderUtils from 'loader-utils';
-import * as ts from 'typescript';
+import registryTransformer from '@dojo/webpack-contrib/registry-transformer';
 import getFeatures from '@dojo/webpack-contrib/static-build-loader/getFeatures';
+import { existsSync } from 'fs';
+import * as loaderUtils from 'loader-utils';
+import * as path from 'path';
+import * as ts from 'typescript';
+import * as webpack from 'webpack';
+import { WebAppManifest, WebpackConfiguration } from './interfaces';
 
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const IgnorePlugin = require('webpack/lib/IgnorePlugin');
 const AutoRequireWebpackPlugin = require('auto-require-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
@@ -66,11 +66,7 @@ function getLocalIdent(
 	options: any
 ) {
 	if (!options.context) {
-		if (loaderContext.options && typeof loaderContext.options.context === 'string') {
-			options.context = loaderContext.options.context;
-		} else {
-			options.context = loaderContext.context;
-		}
+		options.context = loaderContext.context;
 	}
 	const request = slash(path.relative(options.context, loaderContext.resourcePath));
 	options.content = `${options.hashPrefix}${request}+${localName}`;
@@ -95,6 +91,7 @@ function importTransformer(basePath: string, bundles: any = {}) {
 			resolvedModules = file.resolvedModules;
 			return ts.visitEachChild(file, visit, context);
 		};
+
 		function visit(node: any): any {
 			if (node.kind === ts.SyntaxKind.CallExpression && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
 				const moduleText = node.arguments[0].text;
@@ -157,58 +154,54 @@ export default function webpackConfigFactory(args: any): WebpackConfiguration {
 		}
 	};
 
-	const postCssModuleLoader = ExtractTextPlugin.extract({
-		fallback: ['style-loader'],
-		use: [
-			'@dojo/webpack-contrib/css-module-decorator-loader',
-			{
-				loader: 'css-loader',
-				options: {
-					modules: true,
-					sourceMap: true,
-					importLoaders: 1,
-					localIdentName: '[hash:base64:8]',
-					getLocalIdent
-				}
-			},
-			{
-				loader: 'postcss-loader?sourceMap',
-				options: {
-					ident: 'postcss',
-					plugins: [
-						require('postcss-import')(),
-						require('postcss-cssnext')({
-							features: { autoprefixer: { browsers: ['last 2 versions', 'ie >= 10'] } }
-						})
-					]
-				}
+	const postCssModuleLoader = [
+		MiniCssExtractPlugin.loader,
+		'@dojo/webpack-contrib/css-module-decorator-loader',
+		{
+			loader: 'css-loader',
+			options: {
+				modules: true,
+				sourceMap: true,
+				importLoaders: 1,
+				localIdentName: '[hash:base64:8]',
+				getLocalIdent
 			}
-		]
-	});
-	const cssLoader = ExtractTextPlugin.extract({
-		fallback: ['style-loader'],
-		use: [
-			{
-				loader: 'css-loader',
-				options: {
-					sourceMap: true,
-					importLoaders: 1
-				}
-			},
-			{
-				loader: 'postcss-loader?sourceMap',
-				options: {
-					ident: 'postcss',
-					plugins: [
-						require('postcss-import')(),
-						require('postcss-cssnext')({
-							features: { autoprefixer: { browsers: ['last 2 versions', 'ie >= 10'] } }
-						})
-					]
-				}
+		},
+		{
+			loader: 'postcss-loader?sourceMap',
+			options: {
+				ident: 'postcss',
+				plugins: [
+					require('postcss-import')(),
+					require('postcss-cssnext')({
+						features: { autoprefixer: { browsers: ['last 2 versions', 'ie >= 10'] } }
+					})
+				]
 			}
-		]
-	});
+		}
+	];
+	const cssLoader = [
+		MiniCssExtractPlugin.loader,
+		{
+			loader: 'css-loader',
+			options: {
+				sourceMap: true,
+				importLoaders: 1
+			}
+		},
+		{
+			loader: 'postcss-loader?sourceMap',
+			options: {
+				ident: 'postcss',
+				plugins: [
+					require('postcss-import')(),
+					require('postcss-cssnext')({
+						features: { autoprefixer: { browsers: ['last 2 versions', 'ie >= 10'] } }
+					})
+				]
+			}
+		}
+	];
 
 	const config: webpack.Configuration = {
 		entry: {
@@ -239,7 +232,7 @@ export default function webpackConfigFactory(args: any): WebpackConfiguration {
 			new AutoRequireWebpackPlugin(mainEntry),
 			new webpack.BannerPlugin(banner),
 			new IgnorePlugin(/request\/providers\/node/),
-			new ExtractTextPlugin({
+			new MiniCssExtractPlugin({
 				filename: 'main.css',
 				allChunks: true
 			}),
@@ -322,12 +315,12 @@ export default function webpackConfigFactory(args: any): WebpackConfiguration {
 				{
 					test: /\.css$/,
 					exclude: [...allPaths, /\.m\.css$/],
-					use: ExtractTextPlugin.extract({ fallback: ['style-loader'], use: ['css-loader?sourceMap'] })
+					use: [MiniCssExtractPlugin.loader, 'css-loader?sourceMap']
 				},
 				{
 					test: (path: string) => /\.m\.css$/.test(path) && existsSync(path + '.js'),
 					exclude: allPaths,
-					use: ExtractTextPlugin.extract({ fallback: ['style-loader'], use: ['css-loader?sourceMap'] })
+					use: [MiniCssExtractPlugin.loader, 'css-loader?sourceMap']
 				},
 				{
 					test: (path: string) => /\.m\.css$/.test(path) && !existsSync(path + '.js'),

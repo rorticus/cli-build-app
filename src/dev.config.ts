@@ -31,11 +31,10 @@ function webpackConfig(args: any): webpack.Configuration {
 				: {},
 			template: 'src/index.html'
 		}),
-		new CleanWebpackPlugin(['dev'], { root: output.path, verbose: false }),
-		new webpack.optimize.CommonsChunkPlugin({
-			name: 'runtime'
-		})
+		new CleanWebpackPlugin(['dev'], { root: output.path, verbose: false })
 	];
+
+	config.mode = 'development';
 
 	if (serviceWorker) {
 		const serviceWorkerOptions =
