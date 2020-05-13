@@ -1,6 +1,5 @@
 import { Command, EjectOutput, Helper, OptionsHelper } from '@dojo/cli/interfaces';
 import * as express from 'express';
-import * as logUpdate from 'log-update';
 import * as ora from 'ora';
 import * as path from 'path';
 import * as url from 'url';
@@ -37,28 +36,19 @@ function getLibraryName(name: string) {
 
 const libraryName = packageName ? getLibraryName(packageName) : 'main';
 
-const fixMultipleWatchTrigger = require('webpack-mild-compile');
 const hotMiddleware = require('webpack-hot-middleware');
 const connectInject = require('connect-inject');
 
 const testModes = ['test', 'unit', 'functional'];
 
-function createCompiler(config: webpack.Configuration) {
+function createCompiler(config: webpack.Configuration[]) {
 	const compiler = webpack(config);
-	fixMultipleWatchTrigger(compiler);
+	// fixMultipleWatchTrigger(compiler);
 	return compiler;
 }
 
 function createWatchCompiler(config: webpack.Configuration) {
-	const compiler = createCompiler(config);
-	const spinner = ora('building').start();
-	compiler.hooks.invalid.tap('@dojo/cli-build-app', () => {
-		logUpdate('');
-		spinner.start();
-	});
-	compiler.hooks.done.tap('@dojo/cli-build-app', () => {
-		spinner.stop();
-	});
+	const compiler = createCompiler([config]);
 	return compiler;
 }
 
@@ -83,10 +73,10 @@ function serveStatic(
 	}
 }
 
-function build(config: webpack.Configuration, args: any) {
-	const compiler = createCompiler(config);
+function build(configs: webpack.Configuration[], args: any) {
+	const compiler = createCompiler(configs);
 	const spinner = ora('building').start();
-	return new Promise<webpack.Compiler>((resolve, reject) => {
+	return new Promise<webpack.MultiCompiler>((resolve, reject) => {
 		compiler.run((err, stats) => {
 			spinner.stop();
 			if (err) {
@@ -94,7 +84,7 @@ function build(config: webpack.Configuration, args: any) {
 			}
 			if (stats) {
 				const runningMessage = args.serve ? `Listening on port ${args.port}...` : '';
-				const hasErrors = logger(stats.toJson({ warningsFilter }), config, runningMessage, args);
+				const hasErrors = logger(stats.toJson({ warningsFilter }), configs, runningMessage, args);
 				if (hasErrors) {
 					reject({});
 					return;
@@ -125,8 +115,9 @@ function buildNpmDependencies(): any {
 	}
 }
 
-async function fileWatch(config: webpack.Configuration, args: any) {
-	return new Promise<webpack.Compiler>((resolve, reject) => {
+async function fileWatch(configs: webpack.Configuration[], args: any) {
+	return new Promise<webpack.MultiCompiler>((resolve, reject) => {
+		const config = configs[0];
 		const watchOptions = config.watchOptions as webpack.Compiler.WatchOptions;
 		const compiler = createWatchCompiler(config);
 		compiler.watch(watchOptions, (err, stats) => {
@@ -146,8 +137,8 @@ async function fileWatch(config: webpack.Configuration, args: any) {
 	});
 }
 
-async function serve(config: webpack.Configuration, args: any) {
-	const compiler = args.watch ? await fileWatch(config, args) : await build(config, args);
+async function serve(configs: webpack.Configuration[], args: any) {
+	const compiler = args.watch ? await fileWatch(configs, args) : await build(configs, args);
 	let isHttps = false;
 	const base = args.base || '/';
 
@@ -160,24 +151,27 @@ async function serve(config: webpack.Configuration, args: any) {
 		next();
 	});
 
-	const outputDir = (config.output && config.output.path) || process.cwd();
-	let btrOptions = args['build-time-render'];
-	if (btrOptions) {
-		if (args.singleBundle || (args.experimental && !!args.experimental.speed)) {
-			btrOptions = { ...btrOptions, sync: true };
+	const outputDir = (configs[0].output && configs[0].output.path) || process.cwd();
+
+	configs.forEach((config) => {
+		let btrOptions = args['build-time-render'];
+		if (btrOptions) {
+			if (args.singleBundle || (args.experimental && !!args.experimental.speed)) {
+				btrOptions = { ...btrOptions, sync: true };
+			}
+			const jsonpName = (config.output && config.output.jsonpFunction) || 'unknown';
+			const onDemandBtr = new OnDemandBtr({
+				buildTimeRenderOptions: btrOptions,
+				scope: libraryName,
+				base,
+				compiler: compiler.compilers[0],
+				entries: config.entry ? Object.keys(config.entry) : [],
+				outputPath: outputDir,
+				jsonpName
+			});
+			app.use(base, (req, res, next) => onDemandBtr.middleware(req, res, next));
 		}
-		const jsonpName = (config.output && config.output.jsonpFunction) || 'unknown';
-		const onDemandBtr = new OnDemandBtr({
-			buildTimeRenderOptions: btrOptions,
-			scope: libraryName,
-			base,
-			compiler,
-			entries: config.entry ? Object.keys(config.entry) : [],
-			outputPath: outputDir,
-			jsonpName
-		});
-		app.use(base, (req, res, next) => onDemandBtr.middleware(req, res, next));
-	}
+	});
 
 	if (args.mode !== 'dist' || !Array.isArray(args.compression)) {
 		app.use(base, expressCompression());
@@ -357,17 +351,20 @@ const command: Command = {
 	},
 	run(helper: Helper, args: any) {
 		console.log = () => {};
-		let config: webpack.Configuration;
+		let config: webpack.Configuration[];
 		args.experimental = args.experimental || {};
 
 		if (args.mode === 'dev') {
-			config = devConfigFactory(args);
+			config = [
+				devConfigFactory(args),
+				devConfigFactory({ ...args, legacy: true, 'build-time-render': undefined })
+			];
 		} else if (args.mode === 'unit' || args.mode === 'test') {
-			config = unitConfigFactory(args);
+			config = [unitConfigFactory(args)];
 		} else if (args.mode === 'functional') {
-			config = functionalConfigFactory(args);
+			config = [functionalConfigFactory(args)];
 		} else {
-			config = distConfigFactory(args);
+			config = [distConfigFactory(args)];
 		}
 
 		if (args.serve) {

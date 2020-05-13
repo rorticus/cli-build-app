@@ -22,6 +22,8 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const createHash = require('webpack/lib/util/createHash');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const WebpackModuleNomodulePlugin = require('webpack-module-nomodule-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const stylelint = require('stylelint');
 const StyleLintPlugin = require('stylelint-webpack-plugin');
@@ -181,7 +183,7 @@ export class InsertScriptPlugin {
 
 	apply(compiler: any) {
 		compiler.hooks.compilation.tap('InsertScriptPlugin', (compilation: any) => {
-			compilation.hooks.htmlWebpackPluginBeforeHtmlProcessing.tapAsync(
+			HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
 				'InsertScriptPlugin',
 				(data: any, cb: Function) => {
 					this._options.forEach(({ content, type }) => {
@@ -397,10 +399,10 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 			setImmediate: false
 		},
 		output: {
-			chunkFilename: '[name].js',
+			chunkFilename: isLegacy ? '[name].legacy.js' : '[name].js',
 			library: `lib_${libraryName}`,
 			umdNamedDefine: true,
-			filename: '[name].js',
+			filename: isLegacy ? '[name].legacy.js' : '[name].js',
 			jsonpFunction: `dojoWebpackJsonp${libraryName}`,
 			libraryTarget: 'umd',
 			path: path.resolve('./output')
@@ -542,7 +544,8 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 				new ExtraWatchWebpackPlugin({
 					files: watchExtraFiles
 				}),
-			new ManifestPlugin()
+			new ManifestPlugin(),
+			new WebpackModuleNomodulePlugin(isLegacy ? 'legacy' : 'modern')
 		]),
 		module: {
 			// `file` uses the pattern `loaderPath!filePath`, hence the regex test
