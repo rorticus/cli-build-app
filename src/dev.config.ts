@@ -128,7 +128,8 @@ window['${libraryName}'].base = '${base}'</script>`,
 				basePath,
 				baseUrl: base,
 				scope: libraryName,
-				onDemand: Boolean(args.serve && args.watch)
+				onDemand: Boolean(args.serve && args.watch),
+				legacy: args.legacy
 			})
 		);
 	}

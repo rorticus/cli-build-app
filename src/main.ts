@@ -355,10 +355,7 @@ const command: Command = {
 		args.experimental = args.experimental || {};
 
 		if (args.mode === 'dev') {
-			config = [
-				devConfigFactory(args),
-				devConfigFactory({ ...args, legacy: true, 'build-time-render': undefined })
-			];
+			config = [devConfigFactory(args), devConfigFactory({ ...args, legacy: true })];
 		} else if (args.mode === 'unit' || args.mode === 'test') {
 			config = [unitConfigFactory(args)];
 		} else if (args.mode === 'functional') {

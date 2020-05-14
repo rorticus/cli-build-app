@@ -544,8 +544,8 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 				new ExtraWatchWebpackPlugin({
 					files: watchExtraFiles
 				}),
-			new ManifestPlugin(),
-			new WebpackModuleNomodulePlugin(isLegacy ? 'legacy' : 'modern')
+			new ManifestPlugin({ fileName: isLegacy ? 'manifest.legacy.json' : 'manifest.json' }),
+			new WebpackModuleNomodulePlugin(isLegacy ? 'legacy' : 'modern', 'minimal')
 		]),
 		module: {
 			// `file` uses the pattern `loaderPath!filePath`, hence the regex test
