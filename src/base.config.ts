@@ -22,6 +22,7 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const createHash = require('webpack/lib/util/createHash');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const BabelEsmPlugin = require('babel-esm-plugin');
 
 const stylelint = require('stylelint');
 const StyleLintPlugin = require('stylelint-webpack-plugin');
@@ -189,6 +190,46 @@ export class InsertScriptPlugin {
 							data.html = data.html.replace('</head>', `${content}</head>`);
 						} else if (type === 'prepend') {
 							data.html = data.html.replace('<head>', `<head>${content}`);
+						}
+					});
+					cb(null, data);
+				}
+			);
+		});
+	}
+}
+
+export class ModuleNoModulePlugin {
+	apply(compiler: any) {
+		compiler.hooks.compilation.tap('ModuleNoModulePlugin', (compilation: any) => {
+			compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
+				'ModuleNoModulePlugin',
+				(data: any, cb: Function) => {
+					// find all the bootstraps
+					data.body = [];
+					Object.keys(compilation.assets).forEach((asset) => {
+						if (/^bootstrap\..*\.bundle.js$/.test(asset)) {
+							if (asset.indexOf('modern') >= 0) {
+								// modern
+								data.body.push({
+									tagName: 'script',
+									closeTag: true,
+									attributes: {
+										src: asset,
+										type: 'module'
+									}
+								});
+							} else {
+								// legacy
+								data.body.push({
+									tagName: 'script',
+									closeTag: true,
+									attributes: {
+										src: asset,
+										nomodule: ''
+									}
+								});
+							}
 						}
 					});
 					cb(null, data);
@@ -542,7 +583,11 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 				new ExtraWatchWebpackPlugin({
 					files: watchExtraFiles
 				}),
-			new ManifestPlugin()
+			new ManifestPlugin(),
+			new BabelEsmPlugin({
+				chunkFilename: '[name].modern.js',
+				filename: '[name].modern.js'
+			})
 		]),
 		module: {
 			// `file` uses the pattern `loaderPath!filePath`, hence the regex test
@@ -631,6 +676,25 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 						},
 						'umd-compat-loader'
 					])
+				},
+				{
+					test: /.js$/,
+					exclude: /(node_modules)/,
+					use: {
+						loader: 'babel-loader',
+						options: {
+							presets: [
+								[
+									'@babel/preset-env',
+									{
+										targets: {
+											browsers: ['last 2 versions', 'safari >= 7']
+										}
+									}
+								]
+							]
+						}
+					}
 				},
 				{
 					include: [/@dojo/, /globalize/],
