@@ -226,7 +226,7 @@ export class ModuleNoModulePlugin {
 									closeTag: true,
 									attributes: {
 										src: asset,
-										nomodule: ''
+										nomodule: 'true'
 									}
 								});
 							}
