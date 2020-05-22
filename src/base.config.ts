@@ -22,7 +22,8 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const createHash = require('webpack/lib/util/createHash');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-const BabelEsmPlugin = require('babel-esm-plugin');
+
+import BabelEsmPlugin from '@dojo/webpack-contrib/babel-esm-plugin';
 
 const stylelint = require('stylelint');
 const StyleLintPlugin = require('stylelint-webpack-plugin');
@@ -655,13 +656,14 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 											}
 										}
 									]
-								]
+								],
+								plugins: [['@babel/plugin-transform-runtime', { regenerator: true }]]
 							}
 						},
-						features && {
-							loader: '@dojo/webpack-contrib/static-build-loader',
-							options: { features, staticOnly }
-						},
+						// features && {
+						// 	loader: '@dojo/webpack-contrib/static-build-loader',
+						// 	options: { features, staticOnly }
+						// },
 						isLegacy && getUMDCompatLoader({ bundles: args.bundles }),
 						{
 							loader: 'ts-loader',
@@ -688,13 +690,14 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 											}
 										}
 									]
-								]
+								],
+								plugins: [['@babel/plugin-transform-runtime', { regenerator: true }]]
 							}
-						},
-						features && {
-							loader: '@dojo/webpack-contrib/static-build-loader',
-							options: { features, staticOnly }
 						}
+						// features && {
+						// 	loader: '@dojo/webpack-contrib/static-build-loader',
+						// 	options: { features, staticOnly }
+						// }
 					])
 				},
 				{
@@ -712,13 +715,14 @@ export default function webpackConfigFactory(args: any): webpack.Configuration {
 											}
 										}
 									]
-								]
+								],
+								plugins: [['@babel/plugin-transform-runtime', { regenerator: true }]]
 							}
 						},
-						features && {
-							loader: '@dojo/webpack-contrib/static-build-loader',
-							options: { features, staticOnly }
-						},
+						// features && {
+						// 	loader: '@dojo/webpack-contrib/static-build-loader',
+						// 	options: { features, staticOnly }
+						// },
 						'umd-compat-loader'
 					])
 				},

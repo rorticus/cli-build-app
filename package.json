@@ -58,6 +58,8 @@
     "arrowParens": "always"
   },
   "devDependencies": {
+    "@babel/plugin-transform-runtime": "^7.9.6",
+    "@babel/runtime": "^7.9.6",
     "@dojo/cli": "7.0.0-rc.1",
     "@dojo/scripts": "~4.0.2",
     "@types/clean-webpack-plugin": "0.1.2",
@@ -104,7 +106,7 @@
     "sinon": "~4.5.0"
   },
   "dependencies": {
-    "@dojo/webpack-contrib": "7.0.0-rc.2",
+    "@dojo/webpack-contrib": "file:../webpack-contrib/dist/dojo-webpack-contrib-6.2.0.tgz",
     "babel-esm-plugin": "^0.8.1",
     "babel-loader": "^8.1.0",
     "babel-preset-env": "^1.7.0",
